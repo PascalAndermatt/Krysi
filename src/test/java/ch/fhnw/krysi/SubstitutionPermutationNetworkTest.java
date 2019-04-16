@@ -13,10 +13,11 @@ public class SubstitutionPermutationNetworkTest {
 
     private SubstitutionPermutationNetwork spn;
     private final byte[] randomBitString = {0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1111};
+    private final byte[] key = {0b0000_0001, 0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1000, 0b0000_1100, 0b0000_0000, 0b0000_0000};
 
     @BeforeEach
     public void setup(){
-        this.spn = new SubstitutionPermutationNetwork();
+        this.spn = new SubstitutionPermutationNetwork(this.key);
     }
 
     @AfterEach
@@ -53,18 +54,18 @@ public class SubstitutionPermutationNetworkTest {
         roundKeysForDecrypt.put(3, new byte[]{0b0000_0011, 0b0000_0000, 0b0000_0100, 0b0000_1000});
         roundKeysForDecrypt.put(4, new byte[]{0b0000_0001, 0b0000_0001, 0b0000_0010, 0b0000_1000});
 
-        assertArrayEquals(roundKeysForDecrypt.get(0), spn.getRoundKeysForDecrypt().get(0));
-        assertArrayEquals(roundKeysForDecrypt.get(1), spn.getRoundKeysForDecrypt().get(1));
-        assertArrayEquals(roundKeysForDecrypt.get(2), spn.getRoundKeysForDecrypt().get(2));
-        assertArrayEquals(roundKeysForDecrypt.get(3), spn.getRoundKeysForDecrypt().get(3));
-        assertArrayEquals(roundKeysForDecrypt.get(4), spn.getRoundKeysForDecrypt().get(4));
+        assertArrayEquals(roundKeysForDecrypt.get(0), spn.getRoundKeysForDecryption().get(0));
+        assertArrayEquals(roundKeysForDecrypt.get(1), spn.getRoundKeysForDecryption().get(1));
+        assertArrayEquals(roundKeysForDecrypt.get(2), spn.getRoundKeysForDecryption().get(2));
+        assertArrayEquals(roundKeysForDecrypt.get(3), spn.getRoundKeysForDecryption().get(3));
+        assertArrayEquals(roundKeysForDecrypt.get(4), spn.getRoundKeysForDecryption().get(4));
     }
 
     @Test
     public void testInitialWhiteStep()
     {
         byte[] expected = new byte[]{0b0000_0000, 0b0000_0011, 0b0000_1010, 0b0000_0111};
-        byte[] actual = this.spn.initialWhiteStep(new byte[]{0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1111});
+        byte[] actual = this.spn.initialWhiteStep(new byte[]{0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1111}, false);
         assertArrayEquals(expected, actual);
     }
 

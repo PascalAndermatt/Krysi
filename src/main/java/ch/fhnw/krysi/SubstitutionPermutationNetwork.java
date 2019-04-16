@@ -11,18 +11,19 @@ public class SubstitutionPermutationNetwork {
     private final int rounds = 4;
     private final int numberOfBitsPerBlock = 4;
     private final int numberOfBlocks = 4;
-//    private final byte[] key = {0b0000_0001, 0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1000, 0b0000_1100, 0b0000_0000, 0b0000_0000}; // für Tests
-    private final byte[] key = {0b0000_0011, 0b0000_1010, 0b0000_1001, 0b0000_0100, 0b0000_1101, 0b0000_0110, 0b0000_0011, 0b0000_1111};
+    private byte[] key;
     private final int numberOfKeyBits = 32;
 
     private Map<Integer, byte[]> roundKeys = new HashMap<>();
-    private Map<Integer, byte[]> roundKeysForDecrypt = new HashMap<>();
+    private Map<Integer, byte[]> roundKeysForDecryption = new HashMap<>();
+
     private BiMap<Byte, Byte> sBox = HashBiMap.create();
     private Map<Integer, Integer> bitpermutation = new HashMap<>();
     public BiMap<Byte, String> binaryNumbers = HashBiMap.create();
 
-
-    public SubstitutionPermutationNetwork(){
+    public SubstitutionPermutationNetwork(byte[] key){
+        if(key == null) throw new IllegalArgumentException("key is null");
+        this.key = key;
         createSBox();
         createBitpermutation();
         createBinaryNumbers();
@@ -30,12 +31,14 @@ public class SubstitutionPermutationNetwork {
         createRoundKeysForDecryption();
     }
 
+    // Diese Methode ist nur für die Test-Cases
     public Map<Integer, byte[]> getRoundKeys(){
         return this.roundKeys;
     }
 
-    public Map<Integer, byte[]> getRoundKeysForDecrypt(){
-        return this.roundKeysForDecrypt;
+    // Diese Methode ist nur für die Test-Cases
+    public Map<Integer, byte[]> getRoundKeysForDecryption(){
+        return this.roundKeysForDecryption;
     }
 
     private void createSBox(){
@@ -109,110 +112,73 @@ public class SubstitutionPermutationNetwork {
     }
 
     public void createRoundKeysForDecryption(){
-        this.roundKeysForDecrypt.put(0, this.roundKeys.get(this.rounds - 0));
+        this.roundKeysForDecryption.put(0, this.roundKeys.get(this.rounds));
 
         for (int i = 1; i < this.rounds; i++){
-            this.roundKeysForDecrypt.put(i, this.makeBitpermutation(this.getRoundKeys().get(this.rounds - i)));
+            this.roundKeysForDecryption.put(i, this.makeBitpermutation(this.getRoundKeys().get(this.rounds - i)));
         }
 
-        this.roundKeysForDecrypt.put(rounds, this.roundKeys.get(rounds - rounds));
+        this.roundKeysForDecryption.put(rounds, this.roundKeys.get(rounds - rounds));
     }
 
     public byte[] encrypt(byte[] randomBitString){
         byte[] result;
-        result = initialWhiteStep(randomBitString);
+
+        result = initialWhiteStep(randomBitString, false);
 
         for (int i = 1; i < this.rounds; i++){
-            result = normalRoundStep(result, i);
+            result = normalRoundStep(result, i, false);
         }
 
-        result = finalShortRound(result);
+        result = finalShortRound(result, false);
 
         return result;
     }
 
     public byte[] decrypt(byte[] encryptedString){
         byte[] result;
-        result = initialWhiteStepInverse(encryptedString);
+        result = initialWhiteStep(encryptedString, true);
 
         for (int i = 1; i < this.rounds; i++){
-            result = normalRoundStepInverse(result, i);
+            result = normalRoundStep(result, i, true);
         }
 
-        result = finalShortRoundInverse(result);
+        result = finalShortRound(result, true);
 
         return result;
     }
 
-    private byte[] finalShortRoundInverse(byte[] bitBlocks) {
-        byte[] result;
-        result = substitutionWithSboxInverse(bitBlocks);
-
-        return roundKeyAdditionInverse(result, this.rounds);
+    public byte[] initialWhiteStep(byte[] randomBitString, boolean inverse) {
+        return roundKeyAddition(randomBitString, 0, inverse);
     }
 
-    private byte[] normalRoundStepInverse(byte[] bitBlocks, int round) {
+    private byte[] normalRoundStep(byte[] bitBlocks, int round, boolean inverse) {
         byte[] result;
 
-        result = substitutionWithSboxInverse(bitBlocks);
+        result = substitutionWithSbox(bitBlocks, inverse);
         result = makeBitpermutation(result);
-        result = roundKeyAdditionInverse(result, round);
+        result = roundKeyAddition(result, round, inverse);
 
         return result;
     }
 
-    public byte[] initialWhiteStep(byte[] randomBitString) {
-        return roundKeyAddition(randomBitString, 0);
-    }
-
-    public byte[] initialWhiteStepInverse(byte[] randomBitString) {
-        return roundKeyAdditionInverse(randomBitString, 0);
-    }
-
-    private byte[] normalRoundStep(byte[] bitBlocks, int round) {
-        byte[] result;
-
-        result = substitutionWithSbox(bitBlocks);
-        result = makeBitpermutation(result);
-        result = roundKeyAddition(result, round);
-
-        return result;
-    }
-
-    private byte[] roundKeyAddition(byte[] bitBlocks, int round){
+    private byte[] roundKeyAddition(byte[] bitBlocks, int round, boolean inverse){
         byte[] result = new byte[4];
 
         for(int i = 0; i < bitBlocks.length; i++){
-            result[i] = (byte) (bitBlocks[i] ^ roundKeys.get(round)[i]);
+            result[i] = (inverse) ? (byte) (bitBlocks[i] ^ roundKeysForDecryption.get(round)[i])
+                    : (byte) (bitBlocks[i] ^ roundKeys.get(round)[i]);
         }
 
         return result;
     }
 
-    private byte[] roundKeyAdditionInverse(byte[] bitBlocks, int round){
-        byte[] result = new byte[4];
-
-        for(int i = 0; i < bitBlocks.length; i++){
-            result[i] = (byte) (bitBlocks[i] ^ roundKeysForDecrypt.get(round)[i]);
-        }
-
-        return result;
-    }
-
-    private byte[] substitutionWithSbox(byte[] bitBlocks){
+    private byte[] substitutionWithSbox(byte[] bitBlocks, boolean inverse){
         byte[] result = new byte[bitBlocks.length];
 
         for (int i = 0; i < bitBlocks.length; i++){
-            result[i] = this.sBox.get(bitBlocks[i]);
-        }
-        return result;
-    }
-
-    private byte[] substitutionWithSboxInverse(byte[] bitBlocks){
-        byte[] result = new byte[bitBlocks.length];
-
-        for (int i = 0; i < bitBlocks.length; i++){
-            result[i] = this.sBox.inverse().get(bitBlocks[i]);
+            result[i] = (inverse) ? this.sBox.inverse().get(bitBlocks[i])
+                                    :this.sBox.get(bitBlocks[i]);
         }
         return result;
     }
@@ -257,11 +223,11 @@ public class SubstitutionPermutationNetwork {
         return result;
     }
 
-    private byte[] finalShortRound(byte[] bitBlocks) {
+    private byte[] finalShortRound(byte[] bitBlocks, boolean inverse) {
         byte[] result;
-        result = substitutionWithSbox(bitBlocks);
+        result = substitutionWithSbox(bitBlocks, inverse);
 
-        return roundKeyAddition(result, this.rounds);
+        return roundKeyAddition(result, this.rounds, inverse);
     }
 
 }

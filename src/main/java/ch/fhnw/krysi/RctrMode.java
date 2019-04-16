@@ -10,6 +10,7 @@ import java.util.Map;
 
 public class RctrMode {
 
+    private final byte[] key = {0b0000_0011, 0b0000_1010, 0b0000_1001, 0b0000_0100, 0b0000_1101, 0b0000_0110, 0b0000_0011, 0b0000_1111};
     private SubstitutionPermutationNetwork spn;
 
     private String y = "0000010011010010" + "0000101110111000" + "0000001010001111" +
@@ -25,7 +26,7 @@ public class RctrMode {
 
 
     public RctrMode(){
-        this.spn = new SubstitutionPermutationNetwork();
+        this.spn = new SubstitutionPermutationNetwork(this.key);
         createRandomBitStrings();
         createYintoBlocks();
         decryptY();
