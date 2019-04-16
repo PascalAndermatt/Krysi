@@ -18,57 +18,58 @@ public class RctrMode {
                         "0001001101100111" + "0010101110110000";
     private int blockLength = 16;
 
-    private Map<Integer, byte[]> yAsBytes = new HashMap<>();
+    private Map<Integer, byte[]> yBlocks = new HashMap<>();
+    private Integer initialVector;
 
-    private Map<Integer, Integer> randomBitStrings = new HashMap<>();
-    private Map<Integer, byte[]> e = new HashMap<>();
+    private Map<Integer, Integer> vectorsForSpn = new HashMap<>();
+    private Map<Integer, byte[]> encryptedVectorsFromSpn = new HashMap<>();
     private Map<Integer, byte[]> x = new HashMap<>();
+
+    private List<Character> decryptedCharacters = new ArrayList<>();
 
 
     public RctrMode(){
         this.spn = new SubstitutionPermutationNetwork(this.key);
-        createRandomBitStrings();
-        createYintoBlocks();
-        decryptY();
-        decryptX();
+        readInitialVector();
+        createVectorsForSpn();
+        divideYintoBlocks();
+        encryptVectorsWithSpn();
+        decryptYtoX();
+        decryptXtoAsciiCharacters();
     }
 
-    // y-1 muss nicht mehr dabei sein, hier wird y0 - yn-1 zerlegt
-    public void createYintoBlocks(){
-        int test2 = this.y.length();
+    private void divideYintoBlocks(){
         this.y = this.y.substring(16);
-        int test = this.y.length();
+
         for (int i = 0; i < (y.length() / 16); i++){
-            this.yAsBytes.put(i, bitStringToBlocks(Integer.parseUnsignedInt(this.y.substring(16 * i, (16 * i) + 16), 2)));
+            this.yBlocks.put(i, bitStringToBlocks(Integer.parseUnsignedInt(this.getBlockOfY(i), 2)));
         }
     }
 
-    public Integer getRandomBitString(){
-        String randomBitString = this.y.substring(0, 16);
-        Integer result = Integer.parseUnsignedInt(randomBitString, 2);
-
-        return result;
+    private String getBlockOfY(int block){
+        return this.y.substring(this.blockLength * block, (this.blockLength * block) + this.blockLength);
     }
 
-    public void createRandomBitStrings(){
+    private void readInitialVector(){
+        String initialVector = this.y.substring(0, 16);
+        this.initialVector = Integer.parseUnsignedInt(initialVector, 2);
+    }
+
+    private void createVectorsForSpn(){
         for (int i = 0; i < ((y.length() / this.blockLength) - 1); i++){
-            this.randomBitStrings.put(i, (bitStringPlus(this.getRandomBitString(), i)));
+            this.vectorsForSpn.put(i, (vectorCalculation(this.initialVector, i)));
         }
     }
 
-    private Integer bitStringPlus(Integer bitString, int plus){
-        return ((bitString + plus) % ((int) Math.pow(2, this.blockLength)));
+    private Integer vectorCalculation(Integer initialVector, int plus){
+        return ((initialVector + plus) % ((int) Math.pow(2, this.blockLength)));
     }
 
-    public byte[] bitStringToBlocks(Integer bitString){
+    private byte[] bitStringToBlocks(Integer bitString){
         String bits = Integer.toBinaryString(bitString);
 
         if (bits.length() < 16){
             bits = StringUtils.leftPad(bits, 16, '0');
-        }
-
-        if(bits.length() > 16){
-            bits = bits.substring(0, 16);
         }
 
         char[] bitsArray = bits.toCharArray();
@@ -76,77 +77,53 @@ public class RctrMode {
         return this.spn.bitStringToBitBlocks(bitsArray);
     }
 
-    public void decryptY(){
-        for (int i = 0; i < randomBitStrings.size(); i++){
-            this.e.put(i, this.spn.encrypt(bitStringToBlocks(this.randomBitStrings.get(i))));
-        }
-
-        for (int i = 0; i < this.e.size(); i++){
-            byte[] block = xOr(e.get(i), i);
-            this.x.put(i, block);
+    private void encryptVectorsWithSpn(){
+        for (int i = 0; i < vectorsForSpn.size(); i++){
+            this.encryptedVectorsFromSpn.put(i, this.spn.encrypt(bitStringToBlocks(this.vectorsForSpn.get(i))));
         }
     }
 
-    public void decryptX(){
-        List<Character> characters = new ArrayList<>();
-        String bitString = removePadding();
+    private void decryptYtoX(){
+        for (int i = 0; i < this.encryptedVectorsFromSpn.size(); i++){
+            byte[] decryptedBlock = xOrBitsFromYwithEncryptedVector(encryptedVectorsFromSpn.get(i), i);
+            this.x.put(i, decryptedBlock);
+        }
+    }
+
+    private void decryptXtoAsciiCharacters(){
+        String bitString = removePaddingFromX();
 
         for (int i = 0; i < bitString.length() / 8; i++){
 
             Integer encryptedX = Integer.parseUnsignedInt(bitString.substring(8 * i, 8 * i + 8 ), 2);
-            characters.add((char)encryptedX.intValue());
+            this.decryptedCharacters.add((char)encryptedX.intValue());
         }
-
-//        for (int i = 0; i < this.x.size(); i++){
-//
-//            String bitStringOfX = this.spn.bitBlocksToBitString(this.x.get(i));
-//            System.out.println(bitStringOfX);
-//            //String bitString1 = bitStringOfX.substring(0, 8)
-//            Integer encryptedX = Integer.parseUnsignedInt(bitStringOfX.substring(0, bitStringOfX.lastIndexOf("1") ), 2);
-//            characters.add((char)encryptedX.intValue());
-//        }
-
-        printList(characters);
     }
 
-    private String removePadding() {
+    private String removePaddingFromX() {
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < this.x.size(); i++){
             builder.append(spn.bitBlocksToBitString(this.x.get(i)));
         }
 
-        String test = builder.toString();
-        String result = test.substring(0, test.lastIndexOf("1"));
+        String bitString = builder.toString();
+        String result = bitString.substring(0, bitString.lastIndexOf("1"));
 
         return result;
     }
 
-    private void printList(List<Character> characters) {
-        for (char character:characters) {
-            System.out.println(character + " ");
-        }
-    }
+    private byte[] xOrBitsFromYwithEncryptedVector(byte[] encryptedVectorFromSpn, int yBlock){
+        byte[] result = new byte[encryptedVectorFromSpn.length];
 
-    public byte[] xOr(byte[] bitBlocks, int yBlock){
-        byte[] result = new byte[bitBlocks.length];
+        for (int i = 0; i < encryptedVectorFromSpn.length; i++){
 
-        for (int i = 0; i < bitBlocks.length; i++){
-
-            result[i] = (byte) (bitBlocks[i] ^ this.yAsBytes.get(yBlock)[i]);
+            result[i] = (byte) (encryptedVectorFromSpn[i] ^ this.yBlocks.get(yBlock)[i]);
         }
 
         return result;
     }
 
-//    private byte[] xOrOfBlocks(byte[] bitBlocks, int round){
-//        byte[] result = new byte[4];
-//
-//        for(int i = 0; i < bitBlocks.length; i++){
-//            result[i] = (byte) (bitBlocks[i] ^ roundKeys.get(round)[i]);
-//        }
-//
-//        return result;
-//    }
-
-
+    List<Character> getDecryptedCharacters(){
+       return this.decryptedCharacters;
+    }
 }
