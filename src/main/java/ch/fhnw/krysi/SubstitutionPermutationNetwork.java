@@ -18,7 +18,7 @@ public class SubstitutionPermutationNetwork {
     private Map<Integer, byte[]> roundKeysForDecryption = new HashMap<>();
 
     private BiMap<Byte, Byte> sBox = HashBiMap.create();
-    private Map<Integer, Integer> bitpermutation = new HashMap<>();
+    private Map<Integer, Byte> bitpermutation = new HashMap<>();
     public BiMap<Byte, String> binaryNumbersOfBlocks = HashBiMap.create();
 
     public SubstitutionPermutationNetwork(byte[] key){
@@ -32,41 +32,19 @@ public class SubstitutionPermutationNetwork {
     }
 
     private void createSBox(){
-        this.sBox.put((byte)0, (byte)14);
-        this.sBox.put((byte)1, (byte)4);
-        this.sBox.put((byte)2, (byte)13);
-        this.sBox.put((byte)3, (byte)1);
-        this.sBox.put((byte)4, (byte)2);
-        this.sBox.put((byte)5, (byte)15);
-        this.sBox.put((byte)6, (byte)11);
-        this.sBox.put((byte)7, (byte)8);
-        this.sBox.put((byte)8, (byte)3);
-        this.sBox.put((byte)9, (byte)10);
-        this.sBox.put((byte)10, (byte)6);
-        this.sBox.put((byte)11, (byte)12);
-        this.sBox.put((byte)12, (byte)5);
-        this.sBox.put((byte)13, (byte)9);
-        this.sBox.put((byte)14, (byte)0);
-        this.sBox.put((byte)15, (byte)7);
+        byte[] sBox = new byte[]{14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7};
+
+        for (int i = 0; i < sBox.length; i++){
+            this.sBox.put((byte) i, sBox[i]);
+        }
     }
 
     private void createBitpermutation() {
-        this.bitpermutation.put(0, 0);
-        this.bitpermutation.put(1, 4);
-        this.bitpermutation.put(2, 8);
-        this.bitpermutation.put(3, 12);
-        this.bitpermutation.put(4, 1);
-        this.bitpermutation.put(5, 5);
-        this.bitpermutation.put(6, 9);
-        this.bitpermutation.put(7, 13);
-        this.bitpermutation.put(8, 2);
-        this.bitpermutation.put(9, 6);
-        this.bitpermutation.put(10, 10);
-        this.bitpermutation.put(11, 14);
-        this.bitpermutation.put(12, 3);
-        this.bitpermutation.put(13, 7);
-        this.bitpermutation.put(14, 11);
-        this.bitpermutation.put(15, 15);
+        byte[] bitPermutationsBox = new byte[]{0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15};
+
+        for (int i = 0; i < bitPermutationsBox.length; i++){
+            this.bitpermutation.put(i, bitPermutationsBox[i]);
+        }
     }
 
     private void createBinaryNumbers(){
@@ -88,7 +66,7 @@ public class SubstitutionPermutationNetwork {
         this.binaryNumbersOfBlocks.put((byte)15, "1111");
     }
 
-    public void createRoundKeys(){
+    private void createRoundKeys(){
         for (int i = 0; i <= rounds; i++){
 
             byte[] roundKey = new byte[4];
@@ -101,7 +79,7 @@ public class SubstitutionPermutationNetwork {
         }
     }
 
-    public void createRoundKeysForDecryption(){
+    private void createRoundKeysForDecryption(){
         this.roundKeysForDecryption.put(0, this.roundKeys.get(this.rounds));
 
         for (int i = 1; i < this.rounds; i++){
@@ -111,11 +89,11 @@ public class SubstitutionPermutationNetwork {
         this.roundKeysForDecryption.put(rounds, this.roundKeys.get(rounds - rounds));
     }
 
-    public byte[] encrypt(byte[] randomBitString){
+    byte[] encrypt(byte[] randomBitString){
         return this.executeSpnSteps(randomBitString, false);
     }
 
-    public byte[] executeSpnSteps(byte[] encryptedString, boolean decryption){
+    private byte[] executeSpnSteps(byte[] encryptedString, boolean decryption){
         byte[] result;
         result = initialWhiteStep(encryptedString, decryption);
 
@@ -128,11 +106,11 @@ public class SubstitutionPermutationNetwork {
         return result;
     }
 
-    public byte[] decrypt(byte[] encryptedString){
+    byte[] decrypt(byte[] encryptedString){
         return this.executeSpnSteps(encryptedString, true);
     }
 
-    public byte[] initialWhiteStep(byte[] randomBitString, boolean inverse) {
+    byte[] initialWhiteStep(byte[] randomBitString, boolean inverse) {
         return roundKeyAddition(randomBitString, 0, inverse);
     }
 
@@ -179,7 +157,7 @@ public class SubstitutionPermutationNetwork {
         return bitStringToBitBlocks(result);
     }
 
-    public String bitBlocksToBitString(byte[] bitBlocks) {
+    String bitBlocksToBitString(byte[] bitBlocks) {
         StringBuilder result = new StringBuilder();
         for (byte block:bitBlocks) {
             result.append(this.binaryNumbersOfBlocks.get(block));
@@ -188,7 +166,7 @@ public class SubstitutionPermutationNetwork {
         return result.toString();
     }
 
-    public byte[] bitStringToBitBlocks(char[] bits){
+    byte[] bitStringToBitBlocks(char[] bits){
         byte[] result = new byte[this.numberOfBlocks];
 
         int z = 0;
@@ -215,12 +193,12 @@ public class SubstitutionPermutationNetwork {
     }
 
     // Diese Methode ist nur für die Test-Cases
-    public Map<Integer, byte[]> getRoundKeys(){
+    Map<Integer, byte[]> getRoundKeys(){
         return this.roundKeys;
     }
 
     // Diese Methode ist nur für die Test-Cases
-    public Map<Integer, byte[]> getRoundKeysForDecryption(){
+    Map<Integer, byte[]> getRoundKeysForDecryption(){
         return this.roundKeysForDecryption;
     }
 

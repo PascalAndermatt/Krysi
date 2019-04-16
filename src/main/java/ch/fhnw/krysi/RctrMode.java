@@ -1,6 +1,5 @@
 package ch.fhnw.krysi;
 
-
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -16,17 +15,14 @@ public class RctrMode {
     private String y = "0000010011010010" + "0000101110111000" + "0000001010001111" +
                         "1000111001111111" + "0110000001010001" + "0100001110100000" +
                         "0001001101100111" + "0010101110110000";
-    private int blockLength = 16;
 
+    private int blockLength = 16;
     private Map<Integer, byte[]> yBlocks = new HashMap<>();
     private Integer initialVector;
-
     private Map<Integer, Integer> vectorsForSpn = new HashMap<>();
     private Map<Integer, byte[]> encryptedVectorsFromSpn = new HashMap<>();
     private Map<Integer, byte[]> x = new HashMap<>();
-
     private List<Character> decryptedCharacters = new ArrayList<>();
-
 
     public RctrMode(){
         this.spn = new SubstitutionPermutationNetwork(this.key);
