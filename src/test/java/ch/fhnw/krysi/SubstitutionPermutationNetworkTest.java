@@ -4,20 +4,25 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SubstitutionPermutationNetworkTest {
 
     private SubstitutionPermutationNetwork spn;
+    private RctrMode rctrMode;
+    private char[] characters;
+    private List<Character> characterList;
+    private String decryptedString = "Gut gemacht!";
     private final byte[] randomBitString = {0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1111};
     private final byte[] key = {0b0000_0001, 0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1000, 0b0000_1100, 0b0000_0000, 0b0000_0000};
 
     @BeforeEach
     public void setup(){
         this.spn = new SubstitutionPermutationNetwork(this.key);
+        this.rctrMode = new RctrMode();
+        this.characters = decryptedString.toCharArray();
     }
 
     @AfterEach
@@ -87,6 +92,19 @@ public class SubstitutionPermutationNetworkTest {
         byte[] expected = {0b0000_0001, 0b0000_0010, 0b0000_1000, 0b0000_1111};
         byte[] result = this.spn.decrypt(new byte[]{0b0000_1010, 0b0000_1110, 0b0000_1011, 0b0000_0100});
         assertArrayEquals(expected, result);
+    }
+
+    @Test
+    public void checkCtrModus()
+    {
+        StringBuilder builder = new StringBuilder();
+        List<Character> characters = rctrMode.getDecryptedCharacters();
+
+        for (char character: characters) {
+            builder.append(character);
+        }
+        String actual = builder.toString();
+        assertEquals(this.decryptedString, actual);
     }
 
 }
