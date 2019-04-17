@@ -201,5 +201,4 @@ public class SubstitutionPermutationNetwork {
     Map<Integer, byte[]> getRoundKeysForDecryption(){
         return this.roundKeysForDecryption;
     }
-
 }
